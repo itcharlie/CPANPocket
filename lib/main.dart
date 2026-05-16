@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Cpan Pocket',
+      title: 'CPAN Pocket',
       theme: ThemeData(
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
@@ -33,6 +33,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List<dynamic> _searchResults = [];
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,29 +73,70 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       body: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children:[ 
-          Padding( 
-            padding:const EdgeInsets.all(24.0),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.5,              
-              child: 
-                SearchBar(
-                  leading: const Icon(Icons.search), // The magnifying glass icon
-                  hintText: 'Search...',
-                  onSubmitted: (value) {
-                  // TODO: cpan search logic here
-                     final perlModules = performSearch([value]);
-
-                     // TODO: Build a list of results
-                     // buildlistView();
-                  },
-                )
+              width: MediaQuery.of(context).size.width * 0.5,
+              child: SearchBar(
+                leading: const Icon(Icons.search), // The magnifying glass icon
+                hintText: 'Search...',
+                onSubmitted: (value) async {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  try {
+                    final results = await performSearch([value]);
+                    setState(() {
+                      _searchResults = results;
+                      _isLoading = false;
+                    });
+                  } catch (e) {
+                    setState(() {
+                      _isLoading = false;
+                    });
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
             ),
-        ),
-        ] 
+          ),
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_searchResults.isEmpty)
+            const Expanded(
+              child: Center(
+                child: Text('No results found.'),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _searchResults.length,
+                itemBuilder: (context, index) {
+                  final module = _searchResults[index];
+                  return ListTile(
+                    title: Text(module['name'] ?? 'Unknown Module'),
+                    subtitle: Text('Version: ${module['version']}'),
+                    leading: const Icon(Icons.library_books),
+                    onTap: () {
+                      // TODO: Implement module details view
+                    },
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
