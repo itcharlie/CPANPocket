@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Cpan Pocket'),
+      home: const MyHomePage(title: 'CPAN Pocket'),
     );
   }
 }
@@ -85,7 +85,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   hintText: 'Search...',
                   onSubmitted: (value) {
                   // TODO: cpan search logic here
-                     performSearch([value]);
+                     final perlModules = performSearch([value]);
+
+                     // TODO: Build a list of results
+                     // buildlistView();
                   },
                 )
             ),
@@ -96,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<void> performSearch(List<String> args) async {
+Future<List<dynamic>> performSearch(List<String> args) async {
 
   // Use "JSON" as a default search string if none provided
   final searchString = args.isNotEmpty ? args[0] : "JSON";
@@ -116,7 +119,7 @@ Future<void> performSearch(List<String> args) async {
 
   if (response.statusCode ==  200 ) {
       final data = jsonDecode(response.body);
-      print( data );
+      //print( data );
       
       final hits = data['hits']?['hits'] as List?;
 
@@ -151,9 +154,13 @@ Future<void> performSearch(List<String> args) async {
 
         print( "Perl Modules : ");
         print(perlModules);
+        return perlModules;
+
+
       }
     } else {
       throw Exception("** failed to load Data Error: ${response.statusCode} ${response.reasonPhrase}");
     }
+    return [];
 }
 
