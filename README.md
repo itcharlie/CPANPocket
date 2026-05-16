@@ -1,10 +1,8 @@
-# cpanpocket
+# CPANPocket
 
-A new Flutter project.
+A mobile app to read CPAN Perl module documentation.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
+## Getting Started on Development
 
 A few resources to get you started if this is your first Flutter project:
 
