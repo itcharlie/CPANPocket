@@ -125,6 +125,8 @@ Future<void> performSearch(List<String> args) async {
       } else {
         print("\nFound ${hits.length} modules:");
         
+        List<Map<String, dynamic>> perlModules =[];
+
         // Extract unique module names that match the search criteria
         final moduleNames = <String>{};
         for (var hit in hits) {
@@ -133,7 +135,10 @@ Future<void> performSearch(List<String> args) async {
             for (var mod in source['module']) {
               final name = mod['name'] as String?;
               if (name != null && name.toLowerCase().contains(searchString.toLowerCase())) {
-                moduleNames.add(name);
+                perlModules.add({ 
+                  'name':  mod['name'],
+                  'version': mod['version'],
+              });
               }
             }
           }
@@ -143,6 +148,9 @@ Future<void> performSearch(List<String> args) async {
         for (final name in sortedNames) {
           print(" - $name");
         }
+
+        print( "Perl Modules : ");
+        print(perlModules);
       }
     } else {
       throw Exception("** failed to load Data Error: ${response.statusCode} ${response.reasonPhrase}");
