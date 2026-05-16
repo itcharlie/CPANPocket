@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -81,8 +83,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 SearchBar(
                   leading: const Icon(Icons.search), // The magnifying glass icon
                   hintText: 'Search...',
-                  onChanged: (value) {
+                  onSubmitted: (value) {
                   // TODO: cpan search logic here
+                     performSearch([value]);
                   },
                 )
             ),
@@ -92,3 +95,57 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+Future<void> performSearch(List<String> args) async {
+
+  // Use "JSON" as a default search string if none provided
+  final searchString = args.isNotEmpty ? args[0] : "JSON";
+  //print("Searching MetaCPAN for modules matching: $searchString");
+  
+  String escapeColons( String text) { return text.replaceAll(':', r'\:'); }
+  String escapeSearchString = escapeColons(searchString);
+ 
+  print("Searching MetaCPAN for modules matching: $escapeSearchString");
+
+  // MetaCPAN FastAPI endpoint for module search
+  // Using module.name with a wildcard for prefix matching
+  final apiUrl = "https://fastapi.metacpan.org/v1/module/_search?q=module.name:$escapeSearchString*&size=20";
+
+
+  final response = await http.get(Uri.parse(apiUrl));
+
+  if (response.statusCode ==  200 ) {
+      final data = jsonDecode(response.body);
+      print( data );
+      
+      final hits = data['hits']?['hits'] as List?;
+
+      if (hits == null || hits.isEmpty) {
+        print("No modules found for '$searchString'.");
+      } else {
+        print("\nFound ${hits.length} modules:");
+        
+        // Extract unique module names that match the search criteria
+        final moduleNames = <String>{};
+        for (var hit in hits) {
+          final source = hit['_source'];
+          if (source != null && source['module'] != null) {
+            for (var mod in source['module']) {
+              final name = mod['name'] as String?;
+              if (name != null && name.toLowerCase().contains(searchString.toLowerCase())) {
+                moduleNames.add(name);
+              }
+            }
+          }
+        }
+
+        final sortedNames = moduleNames.toList()..sort();
+        for (final name in sortedNames) {
+          print(" - $name");
+        }
+      }
+    } else {
+      throw Exception("** failed to load Data Error: ${response.statusCode} ${response.reasonPhrase}");
+    }
+}
+
