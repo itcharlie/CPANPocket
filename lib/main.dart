@@ -68,20 +68,26 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.5,              
-          child: 
-            SearchBar(
-              leading: const Icon(Icons.search), // The magnifying glass icon
-              hintText: 'Search...',
-              onChanged: (value) {
-                 // TODO: cpan search logic here
-             },
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children:[ 
+          Padding( 
+            padding:const EdgeInsets.all(24.0),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.5,              
+              child: 
+                SearchBar(
+                  leading: const Icon(Icons.search), // The magnifying glass icon
+                  hintText: 'Search...',
+                  onChanged: (value) {
+                  // TODO: cpan search logic here
+                  },
+                )
             ),
         ),
+        ] 
       ),
     );
   }
