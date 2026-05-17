@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:cpanpocket/utils/pod_storage.dart';
 
 class ModuleDetailsScreen extends StatefulWidget {
   final String moduleName;
@@ -65,6 +66,22 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.moduleName),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          if (widget.localFilePath == null)
+            IconButton(
+              icon: const Icon(Icons.download),
+              onPressed: () async {
+                if (_markdownData.isNotEmpty) {
+                  await PodStorage.savePod(widget.moduleName, _markdownData);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Downloaded ${widget.moduleName}')),
+                    );
+                  }
+                }
+              },
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

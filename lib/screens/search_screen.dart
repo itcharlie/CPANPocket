@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cpanpocket/screens/module_details_screen.dart';
+import 'package:cpanpocket/utils/pod_storage.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -79,6 +80,31 @@ class _SearchScreenState extends State<SearchScreen> {
                     title: Text(moduleName),
                     subtitle: Text('Version: ${module['version']}'),
                     leading: const Icon(Icons.library_books),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.download),
+                      onPressed: () async {
+                        try {
+                          final response = await http.get(Uri.parse(
+                              'https://fastapi.metacpan.org/v1/pod/$moduleName?content-type=text/x-markdown'));
+                          if (response.statusCode == 200) {
+                            await PodStorage.savePod(moduleName, response.body);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Downloaded $moduleName')),
+                              );
+                            }
+                          } else {
+                            throw Exception('Failed to download: ${response.statusCode}');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
