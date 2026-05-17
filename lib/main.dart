@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cpanpocket/screens/search_screen.dart';
 import 'package:cpanpocket/screens/pod_reader_screen.dart';
+import 'package:cpanpocket/utils/pod_storage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'CPAN Pocket',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       home: const MainNavigationScreen(),
@@ -40,6 +41,42 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _currentScreen = screen;
     });
     Navigator.pop(context); // Close drawer
+  }
+
+  Future<void> _deleteCache() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Cache'),
+        content: const Text('Are you sure you want to delete all downloaded PODs?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await PodStorage.deleteAllPods();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cache deleted successfully')),
+        );
+        // Refresh the current screen if it's the Pod Reader
+        if (_currentScreen is PodReaderScreen) {
+          setState(() {
+            _currentScreen = PodReaderScreen(key: UniqueKey());
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -85,7 +122,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               leading: const Icon(Icons.delete_forever, color: Colors.red),
               title: const Text('Delete Cache', style: TextStyle(color: Colors.red)),
               onTap: () {
-                // TODO: Implement cache deletion logic
+                Navigator.pop(context); // Close drawer
+                _deleteCache();
               },
             ),
           ],
