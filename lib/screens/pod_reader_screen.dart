@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+import 'package:cpanpocket/screens/module_details_screen.dart';
 
 class PodReaderScreen extends StatefulWidget {
   const PodReaderScreen({super.key});
@@ -65,7 +66,15 @@ class _PodReaderScreenState extends State<PodReaderScreen> {
                       title: Text(fileName),
                       subtitle: Text(p.dirname(file.path)),
                       onTap: () {
-                        // TODO: Implement markdown viewer
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ModuleDetailsScreen(
+                              moduleName: fileName,
+                              localFilePath: file.path,
+                            ),
+                          ),
+                        );
                       },
                     );
                   },

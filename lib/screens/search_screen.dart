@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:cpanpocket/screens/module_details_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -73,12 +74,20 @@ class _SearchScreenState extends State<SearchScreen> {
                 itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   final module = _searchResults[index];
+                  final moduleName = module['name'] ?? 'Unknown Module';
                   return ListTile(
-                    title: Text(module['name'] ?? 'Unknown Module'),
+                    title: Text(moduleName),
                     subtitle: Text('Version: ${module['version']}'),
                     leading: const Icon(Icons.library_books),
                     onTap: () {
-                      // TODO: Implement module details view
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ModuleDetailsScreen(
+                            moduleName: moduleName,
+                          ),
+                        ),
+                      );
                     },
                   );
                 },
