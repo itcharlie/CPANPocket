@@ -84,8 +84,15 @@ class _SearchScreenState extends State<SearchScreen> {
                       icon: const Icon(Icons.download),
                       onPressed: () async {
                         try {
-                          final response = await http.get(Uri.parse(
-                              'https://fastapi.metacpan.org/v1/pod/$moduleName?content-type=text/x-markdown'));
+                          final response = await http.get(
+                            Uri.parse(
+                              'https://fastapi.metacpan.org/v1/pod/$moduleName?content-type=text/x-markdown'),    
+                            headers: {
+                               'User-Agent': 'CPANPocket', // Custom User-Agent string
+                              },
+                          );
+                          print('Response $response');
+
                           if (response.statusCode == 200) {
                             await PodStorage.savePod(moduleName, response.body);
                             if (context.mounted) {
@@ -137,8 +144,13 @@ Future<List<dynamic>> performSearch(List<String> args) async {
   // MetaCPAN FastAPI endpoint for module search
   final apiUrl = "https://fastapi.metacpan.org/v1/module/_search?q=maturity:released%20AND%20status:cpan%20AND%20module.name:$escapeSearchString*&size=20";
 
-  final response = await http.get(Uri.parse(apiUrl));
-
+  final response = await http.get(
+    Uri.parse(apiUrl),
+    headers: {
+      'User-Agent': 'CPANPocket', // Custom User-Agent string
+    },
+  );
+  
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
     final hits = data['hits']?['hits'] as List?;
