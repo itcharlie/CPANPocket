@@ -1,30 +1,31 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:cpanpocket/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('CPAN Pocket smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the Search screen is loaded initially.
+    expect(find.text('No results found.'), findsOneWidget);
+    expect(find.byType(SearchBar), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify search hint text is correct.
+    final searchBarFinder = find.byType(SearchBar);
+    final SearchBar searchBarWidget = tester.widget<SearchBar>(searchBarFinder);
+    expect(searchBarWidget.hintText, 'Search...');
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the drawer can be opened.
+    // The menu icon is inside the outer Scaffold's AppBar.
+    final menuButtonFinder = find.byIcon(Icons.menu);
+    expect(menuButtonFinder, findsOneWidget);
+    await tester.tap(menuButtonFinder);
+    await tester.pumpAndSettle(); // Wait for drawer animation to finish
+
+    // Verify that drawer menu items exist.
+    expect(find.text('CPAN Pocket Menu'), findsOneWidget);
+    expect(find.text('Search'), findsNWidgets(2)); // One in the app bar/screen, one in the drawer
+    expect(find.text('Pod Reader'), findsOneWidget);
   });
 }

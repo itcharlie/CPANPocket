@@ -27,33 +27,30 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(24.0),
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.5,
-              child: SearchBar(
-                leading: const Icon(Icons.search), // The magnifying glass icon
-                hintText: 'Search...',
-                onSubmitted: (value) async {
+            child: SearchBar(
+              leading: const Icon(Icons.search), // The magnifying glass icon
+              hintText: 'Search...',
+              onSubmitted: (value) async {
+                setState(() {
+                  _isLoading = true;
+                });
+                try {
+                  final results = await performSearch([value]);
                   setState(() {
-                    _isLoading = true;
+                    _searchResults = results;
+                    _isLoading = false;
                   });
-                  try {
-                    final results = await performSearch([value]);
-                    setState(() {
-                      _searchResults = results;
-                      _isLoading = false;
-                    });
-                  } catch (e) {
-                    setState(() {
-                      _isLoading = false;
-                    });
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
-                    }
+                } catch (e) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
                   }
-                },
-              ),
+                }
+              },
             ),
           ),
           if (_isLoading)
@@ -91,7 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                'User-Agent': 'CPANPocket', // Custom User-Agent string
                               },
                           );
-                          print('Response $response');
+                          debugPrint('Download response status code: ${response.statusCode}');
 
                           if (response.statusCode == 200) {
                             await PodStorage.savePod(moduleName, response.body);
