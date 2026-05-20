@@ -50,8 +50,9 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
         });
       } else {
         final response = await http.get(
-          Uri.parse(
-              'https://fastapi.metacpan.org/v1/pod/${widget.moduleName}?content-type=text/x-markdown'),
+          Uri.https('fastapi.metacpan.org', '/v1/pod/${widget.moduleName}', {
+            'content-type': 'text/x-markdown',
+          }),
           headers: {
             'User-Agent': 'CPANPocket', // Custom User-Agent string
           },
