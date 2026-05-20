@@ -32,15 +32,28 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  Widget _currentScreen = const SearchScreen();
-  String _currentTitle = 'CPAN Pocket';
+  int _selectedIndex = 0;
+  final GlobalKey<PodReaderScreenState> _podReaderKey = GlobalKey<PodReaderScreenState>();
 
-  void _onSelectItem(String title, Widget screen) {
+  String get _currentTitle {
+    switch (_selectedIndex) {
+      case 0:
+        return 'CPAN Pocket';
+      case 1:
+        return 'Pod Reader';
+      default:
+        return 'CPAN Pocket';
+    }
+  }
+
+  void _onSelectItem(int index) {
     setState(() {
-      _currentTitle = title;
-      _currentScreen = screen;
+      _selectedIndex = index;
     });
     Navigator.pop(context); // Close drawer
+    if (index == 1) {
+      _podReaderKey.currentState?.loadMarkdownFiles();
+    }
   }
 
   Future<void> _deleteCache() async {
@@ -69,12 +82,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cache deleted successfully')),
         );
-        // Refresh the current screen if it's the Pod Reader
-        if (_currentScreen is PodReaderScreen) {
-          setState(() {
-            _currentScreen = PodReaderScreen(key: UniqueKey());
-          });
-        }
+        // Refresh the Pod Reader screen
+        _podReaderKey.currentState?.loadMarkdownFiles();
       }
     }
   }
@@ -110,12 +119,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ListTile(
               leading: const Icon(Icons.search),
               title: const Text('Search'),
-              onTap: () => _onSelectItem('Search', const SearchScreen()),
+              selected: _selectedIndex == 0,
+              onTap: () => _onSelectItem(0),
             ),
             ListTile(
               leading: const Icon(Icons.book),
               title: const Text('Pod Reader'),
-              onTap: () => _onSelectItem('Pod Reader', const PodReaderScreen()),
+              selected: _selectedIndex == 1,
+              onTap: () => _onSelectItem(1),
             ),
             const Divider(),
             ListTile(
@@ -129,7 +140,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ],
         ),
       ),
-      body: _currentScreen,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          const SearchScreen(),
+          PodReaderScreen(key: _podReaderKey),
+        ],
+      ),
     );
   }
 }

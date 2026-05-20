@@ -39,6 +39,12 @@ class PodStorage {
     return await File(p.join(dir.path, fileName)).exists();
   }
 
+  static Future<String> getPodFilePath(String moduleName) async {
+    final dir = await _podsDirectory;
+    final fileName = '${moduleName.replaceAll('::', '-')}.md';
+    return p.join(dir.path, fileName);
+  }
+
   static Future<void> deletePod(File file) async {
     if (await file.exists()) {
       await file.delete();

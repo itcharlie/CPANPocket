@@ -15,116 +15,154 @@ class _SearchScreenState extends State<SearchScreen> {
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
 
+  Future<void> _refreshDownloadStatuses() async {
+    if (_searchResults.isEmpty) return;
+    try {
+      final updatedResults = await Future.wait(_searchResults.map((mod) async {
+        final name = mod['name'] as String;
+        final isDownloaded = await PodStorage.isPodDownloaded(name);
+        return {
+          ...mod,
+          'isDownloaded': isDownloaded,
+        };
+      }));
+      if (mounted) {
+        setState(() {
+          _searchResults = updatedResults;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating download statuses: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: SearchBar(
-              leading: const Icon(Icons.search), // The magnifying glass icon
-              hintText: 'Search...',
-              onSubmitted: (value) async {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: SearchBar(
+            leading: const Icon(Icons.search), // The magnifying glass icon
+            hintText: 'Search...',
+            onSubmitted: (value) async {
+              setState(() {
+                _isLoading = true;
+              });
+              try {
+                final results = await performSearch([value]);
+                final updatedResults = await Future.wait(results.map((mod) async {
+                  final name = mod['name'] as String;
+                  final isDownloaded = await PodStorage.isPodDownloaded(name);
+                  return {
+                    ...mod,
+                    'isDownloaded': isDownloaded,
+                  };
+                }));
                 setState(() {
-                  _isLoading = true;
+                  _searchResults = updatedResults;
+                  _isLoading = false;
                 });
-                try {
-                  final results = await performSearch([value]);
-                  setState(() {
-                    _searchResults = results;
-                    _isLoading = false;
-                  });
-                } catch (e) {
-                  setState(() {
-                    _isLoading = false;
-                  });
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
+              } catch (e) {
+                setState(() {
+                  _isLoading = false;
+                });
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
                 }
-              },
-            ),
+              }
+            },
           ),
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (_searchResults.isEmpty)
-            const Expanded(
-              child: Center(
-                child: Text('No results found.'),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _searchResults.length,
-                itemBuilder: (context, index) {
-                  final module = _searchResults[index];
-                  final moduleName = module['name'] ?? 'Unknown Module';
-                  return ListTile(
-                    title: Text(moduleName),
-                    subtitle: Text('Version: ${module['version']}'),
-                    leading: const Icon(Icons.library_books),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.download),
-                      onPressed: () async {
-                        try {
-                          final response = await http.get(
-                            Uri.parse(
-                              'https://fastapi.metacpan.org/v1/pod/$moduleName?content-type=text/x-markdown'),    
-                            headers: {
-                               'User-Agent': 'CPANPocket', // Custom User-Agent string
-                              },
-                          );
-                          debugPrint('Download response status code: ${response.statusCode}');
+        ),
+        if (_isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_searchResults.isEmpty)
+          const Expanded(
+            child: Center(
+              child: Text('No results found.'),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.builder(
+              itemCount: _searchResults.length,
+              itemBuilder: (context, index) {
+                final module = _searchResults[index];
+                final moduleName = module['name'] ?? 'Unknown Module';
+                final isDownloaded = module['isDownloaded'] == true;
 
-                          if (response.statusCode == 200) {
-                            await PodStorage.savePod(moduleName, response.body);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Downloaded $moduleName')),
+                return ListTile(
+                  title: Text(moduleName),
+                  subtitle: Text('Version: ${module['version']}'),
+                  leading: const Icon(Icons.library_books),
+                  trailing: isDownloaded
+                      ? const IconButton(
+                          icon: Icon(Icons.check, color: Colors.green),
+                          onPressed: null,
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.download),
+                          onPressed: () async {
+                            try {
+                              final response = await http.get(
+                                Uri.parse(
+                                  'https://fastapi.metacpan.org/v1/pod/$moduleName?content-type=text/x-markdown'),    
+                                headers: {
+                                   'User-Agent': 'CPANPocket', // Custom User-Agent string
+                                  },
                               );
+                              debugPrint('Download response status code: ${response.statusCode}');
+
+                              if (response.statusCode == 200) {
+                                await PodStorage.savePod(moduleName, response.body);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Downloaded $moduleName')),
+                                  );
+                                }
+                                _refreshDownloadStatuses();
+                              } else {
+                                throw Exception('Failed to download: ${response.statusCode}');
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
                             }
-                          } else {
-                            throw Exception('Failed to download: ${response.statusCode}');
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                    onTap: () {
-                      Navigator.push(
+                          },
+                        ),
+                  onTap: () async {
+                    final localPath = isDownloaded
+                        ? await PodStorage.getPodFilePath(moduleName)
+                        : null;
+                    if (context.mounted) {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ModuleDetailsScreen(
                             moduleName: moduleName,
+                            localFilePath: localPath,
                           ),
                         ),
                       );
-                    },
-                  );
-                },
-              ),
+                      _refreshDownloadStatuses();
+                    }
+                  },
+                );
+              },
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

@@ -21,11 +21,11 @@ void main() {
     final menuButtonFinder = find.byIcon(Icons.menu);
     expect(menuButtonFinder, findsOneWidget);
     await tester.tap(menuButtonFinder);
-    await tester.pumpAndSettle(); // Wait for drawer animation to finish
+    await tester.pump(const Duration(milliseconds: 500)); // Pump drawer opening animation frames
 
     // Verify that drawer menu items exist.
     expect(find.text('CPAN Pocket Menu'), findsOneWidget);
-    expect(find.text('Search'), findsNWidgets(2)); // One in the app bar/screen, one in the drawer
+    expect(find.text('Search'), findsOneWidget); // In the drawer menu
     expect(find.text('Pod Reader'), findsOneWidget);
   });
 }

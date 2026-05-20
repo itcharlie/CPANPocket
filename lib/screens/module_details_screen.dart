@@ -22,19 +22,30 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
   String _markdownData = '';
   bool _isLoading = true;
   String? _error;
+  bool _isDownloaded = false;
 
   @override
   void initState() {
     super.initState();
+    _isDownloaded = widget.localFilePath != null;
     _fetchMarkdown();
   }
 
   Future<void> _fetchMarkdown() async {
     try {
-      if (widget.localFilePath != null) {
-        final content = await File(widget.localFilePath!).readAsString();
+      String? localPath = widget.localFilePath;
+      if (localPath == null) {
+        final isCached = await PodStorage.isPodDownloaded(widget.moduleName);
+        if (isCached) {
+          localPath = await PodStorage.getPodFilePath(widget.moduleName);
+        }
+      }
+
+      if (localPath != null) {
+        final content = await File(localPath).readAsString();
         setState(() {
           _markdownData = content;
+          _isDownloaded = true;
           _isLoading = false;
         });
       } else {
@@ -72,12 +83,15 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
         title: Text(widget.moduleName),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          if (widget.localFilePath == null)
+          if (!_isDownloaded)
             IconButton(
               icon: const Icon(Icons.download),
               onPressed: () async {
                 if (_markdownData.isNotEmpty) {
                   await PodStorage.savePod(widget.moduleName, _markdownData);
+                  setState(() {
+                    _isDownloaded = true;
+                  });
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Downloaded ${widget.moduleName}')),
