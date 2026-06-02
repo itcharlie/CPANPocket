@@ -225,17 +225,14 @@ Future<List<dynamic>> performSearch(List<String> args) async {
   // Use "JSON" as a default search string if none provided
   final searchString = args.isNotEmpty ? args[0] : "JSON";
   
-  String escapeColons(String text) => text.replaceAll(':', r'\:');
-  String escapeSearchString = escapeColons(searchString);
- 
-  debugPrint("Searching MetaCPAN for modules matching: $escapeSearchString");
+  debugPrint("Searching MetaCPAN for modules matching: $searchString");
 
   final queryParameters = {
-    'q': 'maturity:released AND status:cpan AND module.name:$escapeSearchString*',
+    'q': searchString,
     'size': '20',
   };
 
-  final uri = Uri.https('fastapi.metacpan.org', '/v1/module/_search', queryParameters);
+  final uri = Uri.https('fastapi.metacpan.org', '/v1/search/web', queryParameters);
 
   final response = await http.get(
     uri,
@@ -246,27 +243,44 @@ Future<List<dynamic>> performSearch(List<String> args) async {
   
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
-    final hits = data['hits']?['hits'] as List?;
+    final results = data['results'] as List?;
 
-    if (hits == null || hits.isEmpty) {
+    if (results == null || results.isEmpty) {
       return [];
     } else {
       List<Map<String, dynamic>> perlModules = [];
 
-      for (var hit in hits) {
-        final source = hit['_source'];
-        if (source != null && source['module'] != null) {
-          for (var mod in source['module']) {
-            final name = mod['name'] as String?;
-            if (name != null && name.toLowerCase().contains(searchString.toLowerCase())) {
-              perlModules.add({ 
-                'name':  mod['name'],
-                'version': mod['version'],
+      for (var result in results) {
+        final hits = result['hits'] as List?;
+        if (hits != null) {
+          for (var hit in hits) {
+            final documentation = hit['documentation'] as String?;
+            if (documentation != null) {
+              // Find the version of this module
+              String? version;
+              final modulesList = hit['module'] as List?;
+              if (modulesList != null) {
+                for (var mod in modulesList) {
+                  if (mod['name'] == documentation) {
+                    version = mod['version'] as String?;
+                    break;
+                  }
+                }
+                if (version == null && modulesList.isNotEmpty) {
+                  version = modulesList[0]['version'] as String?;
+                }
+              }
+              version ??= '0.00';
+
+              perlModules.add({
+                'name': documentation,
+                'version': version,
               });
             }
           }
         }
       }
+      perlModules.sort((a, b) => (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase()));
       return perlModules;
     }
   } else {
