@@ -261,7 +261,8 @@ Future<List<dynamic>> performSearch(List<String> args) async {
               final modulesList = hit['module'] as List?;
               if (modulesList != null) {
                 for (var mod in modulesList) {
-                  if (mod['name'] == documentation) {
+                  final modName = mod['name'] as String?;
+                  if (modName != null && modName.toLowerCase() == documentation.toLowerCase()) {
                     version = mod['version'] as String?;
                     break;
                   }
