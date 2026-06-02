@@ -151,10 +151,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 final module = _searchResults[index];
                 final moduleName = module['name'] ?? 'Unknown Module';
                 final isDownloaded = module['isDownloaded'] == true;
+                final version = module['version']?.toString() ?? 'Unknown';
 
                 return ListTile(
                   title: Text(moduleName),
-                  subtitle: Text('Version: ${module['version']}'),
+                  subtitle: Text('Version: $version'),
                   leading: const Icon(Icons.library_books),
                   trailing: isDownloaded
                       ? const IconButton(
@@ -176,7 +177,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               debugPrint('Download response status code: ${response.statusCode}');
 
                               if (response.statusCode == 200) {
-                                await PodStorage.savePod(moduleName, response.body);
+                                await PodStorage.savePod(moduleName, version, response.body);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text('Downloaded $moduleName')),
@@ -188,11 +189,11 @@ class _SearchScreenState extends State<SearchScreen> {
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $e')),
-                                );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
                               }
-                            }
                           },
                         ),
                   onTap: () async {
@@ -205,6 +206,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         MaterialPageRoute(
                           builder: (context) => ModuleDetailsScreen(
                             moduleName: moduleName,
+                            version: version,
                             localFilePath: localPath,
                           ),
                         ),

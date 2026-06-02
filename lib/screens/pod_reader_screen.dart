@@ -12,7 +12,7 @@ class PodReaderScreen extends StatefulWidget {
 }
 
 class PodReaderScreenState extends State<PodReaderScreen> {
-  List<File> _files = [];
+  List<Map<String, dynamic>> _filesWithVersions = [];
   bool _isLoading = true;
 
   @override
@@ -24,9 +24,16 @@ class PodReaderScreenState extends State<PodReaderScreen> {
   Future<void> loadMarkdownFiles() async {
     try {
       final mdFiles = await PodStorage.getDownloadedPods();
+      final filesWithVersions = await Future.wait(mdFiles.map((file) async {
+        final version = await PodStorage.getPodVersion(file);
+        return {
+          'file': file,
+          'version': version,
+        };
+      }));
 
       setState(() {
-        _files = mdFiles;
+        _filesWithVersions = filesWithVersions;
         _isLoading = false;
       });
     } catch (e) {
@@ -41,19 +48,21 @@ class PodReaderScreenState extends State<PodReaderScreen> {
   Widget build(BuildContext context) {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : _files.isEmpty
+        : _filesWithVersions.isEmpty
             ? const Center(child: Text('No local Pod documentation found.'))
             : ListView.builder(
-                itemCount: _files.length,
+                itemCount: _filesWithVersions.length,
                 itemBuilder: (context, index) {
-                  final file = _files[index];
+                  final item = _filesWithVersions[index];
+                  final file = item['file'] as File;
+                  final version = item['version'] as String;
                   final fileName = p.basename(file.path);
                   final displayTitle = fileName.replaceAll('.md', '').replaceAll('-', '::');
 
                   return ListTile(
                     leading: const Icon(Icons.description),
                     title: Text(displayTitle),
-                    subtitle: Text('Local: $fileName'),
+                    subtitle: Text('Version: $version | Local: $fileName'),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
@@ -67,6 +76,7 @@ class PodReaderScreenState extends State<PodReaderScreen> {
                         MaterialPageRoute(
                           builder: (context) => ModuleDetailsScreen(
                             moduleName: displayTitle,
+                            version: version,
                             localFilePath: file.path,
                           ),
                         ),

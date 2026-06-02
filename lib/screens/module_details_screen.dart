@@ -6,11 +6,13 @@ import 'package:cpanpocket/utils/pod_storage.dart';
 
 class ModuleDetailsScreen extends StatefulWidget {
   final String moduleName;
+  final String? version;
   final String? localFilePath;
 
   const ModuleDetailsScreen({
     super.key,
     required this.moduleName,
+    this.version,
     this.localFilePath,
   });
 
@@ -23,11 +25,13 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
   bool _isLoading = true;
   String? _error;
   bool _isDownloaded = false;
+  String? _version;
 
   @override
   void initState() {
     super.initState();
     _isDownloaded = widget.localFilePath != null;
+    _version = widget.version;
     _fetchMarkdown();
   }
 
@@ -43,6 +47,10 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
 
       if (localPath != null) {
         final content = await File(localPath).readAsString();
+        if (_version == null || _version == 'Unknown') {
+          final fileVersion = await PodStorage.getPodVersion(File(localPath));
+          _version = fileVersion;
+        }
         setState(() {
           _markdownData = content;
           _isDownloaded = true;
@@ -81,7 +89,14 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.moduleName),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.moduleName, style: const TextStyle(fontSize: 18.0)),
+            if (_version != null && _version != 'Unknown')
+              Text('Version: $_version', style: const TextStyle(fontSize: 12.0)),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           if (!_isDownloaded)
@@ -89,7 +104,7 @@ class _ModuleDetailsScreenState extends State<ModuleDetailsScreen> {
               icon: const Icon(Icons.download),
               onPressed: () async {
                 if (_markdownData.isNotEmpty) {
-                  await PodStorage.savePod(widget.moduleName, _markdownData);
+                  await PodStorage.savePod(widget.moduleName, _version ?? 'Unknown', _markdownData);
                   setState(() {
                     _isDownloaded = true;
                   });
